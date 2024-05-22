@@ -1,0 +1,13 @@
+server:
+  port: 8106
+  servlet:
+    context-path: /robotic-arm
+
+#spring:
+#  profiles:
+#    active: test
+#  application:
+#    name: pm-process
+#  main:
+#    allow-bean-definition-overriding: true
+#
