@@ -1,124 +1,109 @@
 package com.msl.robotic.util;
 
-import com.fazecast.jSerialComm.SerialPort;
-
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 public class GripperUtil {
-    private SerialPort serialPort;
+    private String robotIp;
+    private Socket socket;
+    private OutputStream outputStream;
+    private InputStream inputStream;
 
-    public GripperUtil(String portName) {
-        this.serialPort = SerialPort.getCommPort(portName);
-        this.serialPort.setComPortParameters(115200, 8, SerialPort.ONE_STOP_BIT, SerialPort.NO_PARITY);
-        this.serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 1000);
-        if (!serialPort.openPort()) {
-            throw new RuntimeException("Failed to open port");
-        }
+    public GripperUtil(String robotIp) {
+        this.robotIp = robotIp;
     }
 
-    private void sendCommand(int address, int value) {
-        ByteBuffer buffer = ByteBuffer.allocate(5);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        buffer.putShort((short) address);
-        buffer.put((byte) 0x06); // Function code for writing a single register
-        buffer.putShort((short) value);
-
-        byte[] command = buffer.array();
-        serialPort.writeBytes(command, command.length);
-    }
-
-    private int readCommand(int address) {
-        ByteBuffer buffer = ByteBuffer.allocate(5);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        buffer.putShort((short) address);
-        buffer.put((byte) 0x03); // Function code for reading holding registers
-        buffer.putShort((short) 1); // Number of registers to read
-
-        byte[] command = buffer.array();
-        serialPort.writeBytes(command, command.length);
-
-        byte[] readBuffer = new byte[5];
-        int numRead = serialPort.readBytes(readBuffer, readBuffer.length);
-
-        if (numRead != 5) {
-            throw new RuntimeException("Failed to read response");
-        }
-
-        ByteBuffer responseBuffer = ByteBuffer.wrap(readBuffer);
-        responseBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        responseBuffer.getShort(); // Skip address
-        responseBuffer.get(); // Skip function code
-        return responseBuffer.getShort();
-    }
-
-    public void initializeGripper(int mode) {
-        sendCommand(0x0100, mode);
-    }
-
-    public void setForce(int force) {
-        sendCommand(0x0102, force);
-    }
-
-    public void setPosition(int position) {
-        sendCommand(0x0103, position);
-    }
-
-    public void setSpeed(int speed) {
-        sendCommand(0x0104, speed);
-    }
-
-    public int getInitializationStatus() {
-        return readCommand(0x0200);
-    }
-
-    public int getGripStatus() {
-        return readCommand(0x0201);
-    }
-
-    public int getPosition() {
-        return readCommand(0x0202);
-    }
-
-    public void saveConfiguration() {
-        sendCommand(0x0300, 0x01);
-    }
-
-    public void setInitializationDirection(int direction) {
-        sendCommand(0x0301, direction);
-    }
-
-    public void setDeviceID(int id) {
-        sendCommand(0x0302, id);
-    }
-
-    public void setBaudRate(int rate) {
-        sendCommand(0x0303, rate);
-    }
-
+    // 连接机器人
     public boolean connect() {
-        return serialPort.openPort();
-    }
-
-    public void disconnect() {
-        if (serialPort != null && serialPort.isOpen()) {
-            serialPort.closePort();
+        try {
+            socket = new Socket(robotIp, 8055);
+            outputStream = socket.getOutputStream();
+            inputStream = socket.getInputStream();
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
         }
     }
 
-    // New methods
-    public void openGripper() {
-        // Assuming 0 is fully open position
-        setPosition(0);
+    // 断开连接
+    public void disconnect() {
+        try {
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public void closeGripper() {
-        // Assuming 100 is fully closed position
-        setPosition(100);
+    // 发送命令
+    private String sendCommand(String command) throws IOException {
+        String jsonCommand = String.format("{\"jsonrpc\":\"2.0\",\"method\":\"%s\",\"id\":1}", command);
+        System.out.println("sendCommand: " + jsonCommand);
+        outputStream.write(jsonCommand.getBytes(StandardCharsets.UTF_8));
+        outputStream.flush();
+        // 如果需要，请添加读取响应的逻辑
+        return jsonCommand;
     }
 
-    public void releaseObject() {
-        // Assuming a middle position to release the object
-        setPosition(50);
+    // 打开串口
+    public void openSerialPort(int deviceType) throws IOException {
+        String command = String.format("open_serial_port\",\"params\":{\"device_type\":%d}", deviceType);
+        sendCommand(command);
+    }
+
+    // 配置串口
+    public void configureSerialPort(int baudRate, int bits, String event, int stop) throws IOException {
+        String command = String.format("setopt_serial_port\",\"params\":{\"baud_rate\":%d,\"bits\":%d,\"event\":\"%s\",\"stop\":%d}", baudRate, bits, event, stop);
+        sendCommand(command);
+    }
+
+    // 发送数据
+    public void sendData(byte[] data) throws IOException {
+        String command = String.format("send_serial_data\",\"params\":{\"data\":\"%s\"}", new String(data, StandardCharsets.UTF_8));
+        sendCommand(command);
+    }
+
+    // 重置爪子
+    public void resetGripper() throws IOException {
+        byte[] command = {0x01, 0x06, 0x01, 0x00, 0x00, (byte)0xA5, 0x48, 0x4D};
+        sendData(command);
+    }
+
+    // 关闭串口
+    public void closeSerialPort() throws IOException {
+        sendCommand("close_serial_port");
+    }
+
+    // 读取反馈数据
+    public String readData() throws IOException {
+        byte[] buffer = new byte[1024];
+        int bytesRead = inputStream.read(buffer);
+        if (bytesRead > 0) {
+            return new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        GripperUtil gripperUtil = new GripperUtil("172.16.11.248");
+        if (gripperUtil.connect()) {
+            try {
+                gripperUtil.openSerialPort(1); // 0-RS232 1-RS485通信
+                gripperUtil.configureSerialPort(115200, 8, "N", 1);
+                gripperUtil.resetGripper();
+                gripperUtil.closeSerialPort();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                gripperUtil.disconnect();
+            }
+        } else {
+            System.out.println("连接机器人失败。");
+        }
     }
 }

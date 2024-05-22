@@ -1,11 +1,13 @@
 package com.msl.robotic.service;
 
 import com.msl.robotic.param.PointParam;
+import com.msl.robotic.util.GripperOwnUtil;
 import com.msl.robotic.util.GripperUtil;
 import com.msl.robotic.vo.PointVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.util.*;
 
@@ -117,7 +119,7 @@ public class RoboticService {
 
     public void demo() {
         // 初始化RS485电爪控制器
-        GripperUtil gripper = new GripperUtil("COM3"); // 替换为实际的COM端口
+        GripperOwnUtil gripper = new GripperOwnUtil("COM3"); // 替换为实际的COM端口
 
         if (gripper.connect()) {
             System.out.println("Connected to the gripper.");
@@ -169,6 +171,35 @@ public class RoboticService {
             System.out.println("Disconnected from the gripper and arm.");
         } else {
             System.out.println("Failed to connect to the gripper.");
+        }
+    }
+
+    public Integer ELITEconnectGRIPPER() {
+        GripperUtil gripperUtil = new GripperUtil("192.168.1.200");
+        if (gripperUtil.connect()) {
+            try {
+                gripperUtil.openSerialPort(1); // RS232
+                gripperUtil.configureSerialPort(115200, 8, null, 1);
+                gripperUtil.resetGripper();
+
+                // 读取反馈数据
+                String feedback = gripperUtil.readData();
+                if (feedback != null) {
+                    System.out.println("Received feedback: " + feedback);
+                } else {
+                    System.out.println("No feedback received.");
+                }
+
+                gripperUtil.closeSerialPort();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                gripperUtil.disconnect();
+            }
+            return 1;
+        } else {
+            System.out.println("连接机器人失败。");
+            return 0;
         }
     }
 }

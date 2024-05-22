@@ -102,4 +102,10 @@ public class RoboticController {
     public Result<String> testPost(@RequestBody PointParam param) {
         return Result.ok(new JSONObject().toJSONString());
     }
+
+    @ApiOperation(value = "机械臂连接爪子", notes = "<br>by kzl")
+    @GetMapping("/ELITEconnectGRIPPER")
+    public Result<Integer> ELITEconnectGRIPPER() {
+        return Result.ok(roboticService.ELITEconnectGRIPPER());
+    }
 }

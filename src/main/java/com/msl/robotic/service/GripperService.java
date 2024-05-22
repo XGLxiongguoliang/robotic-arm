@@ -1,13 +1,6 @@
 package com.msl.robotic.service;
 
 import com.fazecast.jSerialComm.SerialPort;
-import com.msl.robotic.util.GripperUtil;
-import org.springframework.stereotype.Service;
-
-import java.io.OutputStream;
-import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 public class GripperService {
     public static void main(String[] args) {
@@ -70,17 +63,4 @@ public class GripperService {
             }
         }
     }
-
-
-    /*public static void main(String[] args) {
-        GripperUtil gripperUtil = new GripperUtil("COM3");
-        gripperUtil.connect();
-
-        gripperUtil.initializeGripper(0);
-
-        int gripStatus = gripperUtil.getGripStatus();
-        System.out.println(gripStatus);
-
-        gripperUtil.openGripper();
-    }*/
 }
