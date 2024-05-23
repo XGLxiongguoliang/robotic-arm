@@ -24,6 +24,9 @@ public class RoboticService {
     @Autowired
     private RoboticService roboticService;
 
+    @Autowired
+    private GripperService gripperService;
+
     //建立连接
     public int connectET() {
         String robotIp = "192.168.1.200";
@@ -178,17 +181,19 @@ public class RoboticService {
         GripperUtil gripperUtil = new GripperUtil("192.168.1.200");
         if (gripperUtil.connect()) {
             try {
-                gripperUtil.openSerialPort(1); // RS232
-                gripperUtil.configureSerialPort(115200, 8, null, 1);
+                gripperUtil.openSerialPort(1); // 0-RS232 1-RS485
+                gripperUtil.configureSerialPort(115200, 8, "N", 1);
                 gripperUtil.resetGripper();
+                System.out.println(gripperUtil.recvSerialPort());
+                //gripperUtil.resetGripperAll();
 
-                // 读取反馈数据
+                /*// 读取反馈数据
                 String feedback = gripperUtil.readData();
                 if (feedback != null) {
                     System.out.println("Received feedback: " + feedback);
                 } else {
                     System.out.println("No feedback received.");
-                }
+                }*/
 
                 gripperUtil.closeSerialPort();
             } catch (IOException e) {

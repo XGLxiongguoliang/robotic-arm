@@ -1,7 +1,9 @@
 package com.msl.robotic.service;
 
 import com.fazecast.jSerialComm.SerialPort;
+import org.springframework.stereotype.Service;
 
+@Service
 public class GripperService {
     public static void main(String[] args) {
         // 列出所有可用的串行端口

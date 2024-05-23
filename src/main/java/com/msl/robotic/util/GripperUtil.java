@@ -42,9 +42,9 @@ public class GripperUtil {
 
     // 发送命令
     private String sendCommand(String command) throws IOException {
-        String jsonCommand = String.format("{\"jsonrpc\":\"2.0\",\"method\":\"%s\",\"id\":1}", command);
+        String jsonCommand = String.format("{\"jsonrpc\":\"2.0\",\"method\":\"%s,\"id\":1}", command);
         System.out.println("sendCommand: " + jsonCommand);
-        outputStream.write(jsonCommand.getBytes(StandardCharsets.UTF_8));
+        outputStream.write(jsonCommand.getBytes(StandardCharsets.ISO_8859_1));
         outputStream.flush();
         // 如果需要，请添加读取响应的逻辑
         return jsonCommand;
@@ -64,12 +64,18 @@ public class GripperUtil {
 
     // 发送数据
     public void sendData(byte[] data) throws IOException {
-        String command = String.format("send_serial_data\",\"params\":{\"data\":\"%s\"}", new String(data, StandardCharsets.UTF_8));
+        String command = String.format("send_serial_data\",\"params\":{\"data\":%s}", bytesToHex(data));
         sendCommand(command);
     }
 
     // 重置爪子
     public void resetGripper() throws IOException {
+        byte[] command = {0x01, 0x06, 0x01, 0x00, 0x00, 0x01, 0x49, (byte) 0xF6};
+        sendData(command);
+    }
+
+    // 重置爪子
+    public void resetGripperAll() throws IOException {
         byte[] command = {0x01, 0x06, 0x01, 0x00, 0x00, (byte)0xA5, 0x48, 0x4D};
         sendData(command);
     }
@@ -80,13 +86,22 @@ public class GripperUtil {
     }
 
     // 读取反馈数据
-    public String readData() throws IOException {
-        byte[] buffer = new byte[1024];
-        int bytesRead = inputStream.read(buffer);
-        if (bytesRead > 0) {
-            return new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+    public String recvSerialPort() throws IOException {
+        return sendCommand("recv_serial_port");
+    }
+
+    // 将字节数组转换为十六进制字符串
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < bytes.length; i++) {
+            sb.append(String.format("%02X", bytes[i]));
+            if (i < bytes.length - 1) {
+                sb.append(",");
+            }
         }
-        return null;
+        sb.append("]");
+        return sb.toString();
     }
 
     public static void main(String[] args) {
