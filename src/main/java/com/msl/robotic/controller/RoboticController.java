@@ -91,21 +91,9 @@ public class RoboticController {
         return Result.ok(roboticService.deletePoint(id));
     }
 
-    @ApiOperation(value = "get请求测试", notes = "<br>by kzl")
-    @GetMapping("/testGet")
-    public Result<Integer> testGet() {
-        return Result.ok(1);
-    }
-
-    @ApiOperation(value = "post请求测试", notes = "<br>by kzl")
-    @PostMapping("/testPost")
-    public Result<String> testPost(@RequestBody PointParam param) {
-        return Result.ok(new JSONObject().toJSONString());
-    }
-
     @ApiOperation(value = "机械臂连接爪子", notes = "<br>by kzl")
     @GetMapping("/ELITEconnectGRIPPER")
-    public Result<Integer> ELITEconnectGRIPPER() {
-        return Result.ok(roboticService.ELITEconnectGRIPPER());
+    public Result<Integer> ELITEconnectGRIPPER(@RequestParam(value = "weight") @NotBlank(message = "爪子修改的宽度") Integer weight) {
+        return Result.ok(roboticService.ELITEconnectGRIPPER(weight));
     }
 }

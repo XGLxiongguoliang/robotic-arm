@@ -1,13 +1,13 @@
 package com.msl.robotic.service;
 
 import com.msl.robotic.param.PointParam;
-import com.msl.robotic.util.GripperOwnUtil;
 import com.msl.robotic.util.GripperUtil;
+import com.msl.robotic.util.LuaParamEnum;
+import com.msl.robotic.util.LuaParamUtil;
 import com.msl.robotic.vo.PointVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.net.Socket;
 import java.util.*;
 
@@ -56,9 +56,22 @@ public class RoboticService {
     //根据坐标移动
     public int movePoint(PointParam param) throws InterruptedException {
         Object[] weizi = pointToWeizi(socket, param.getPoint());
-        lineMove(socket, Collections.singletonList(weizi));
+        boolean operateFlag = lineMove(socket, Collections.singletonList(weizi));
 //        pointMap.put(param.getId(),PointVo.of(param.getId(),param.getPoint()));
 //        wzMap.put(param.getId(),PointVo.of(param.getId(),weizi));
+
+        //先获取机械臂操作的返回状态，机械臂执行结束后，在操作爪子
+        if (operateFlag) {
+            GripperUtil.CommandResult commandResultD0 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1), 1, true);
+            System.out.println("commandResultD0---" + commandResultD0.result.toString());
+
+            GripperUtil.CommandResult commandResultD2 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 100), 1, true);
+            System.out.println("commandResultD2---" + commandResultD2.result.toString());
+
+            GripperUtil.CommandResult commandResultD1 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1), 1, true);
+            System.out.println("commandResultD1---" + commandResultD1.result.toString());
+        }
+
         return 1;
     }
 
@@ -120,87 +133,42 @@ public class RoboticService {
         return weiziVo;
     }
 
-    public void demo() {
-        // 初始化RS485电爪控制器
-        GripperOwnUtil gripper = new GripperOwnUtil("COM3"); // 替换为实际的COM端口
+    public Integer ELITEconnectGRIPPER(Integer weight) {
+        if (socket != null) {
+            // Example command
+            GripperUtil.CommandResult commandResult = GripperUtil.sendCMD(socket, "getRobotPose", null, 1, true);
+            System.out.println(commandResult.result);
 
-        if (gripper.connect()) {
-            System.out.println("Connected to the gripper.");
+            // Example of inverse kinematic command
+            if (commandResult.success) {
+                Map pointMap = new HashMap<>();
+                pointMap.put("targetPose", commandResult.result);
 
-            // 连接机械臂
-            roboticService.connectET();
-
-            // 移动机械臂到目标位置
-            try {
-                roboticService.movePoint(new PointParam());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                GripperUtil.CommandResult inverseResult = GripperUtil.sendCMD(socket, "inverseKinematic", pointMap, 2, true);
+                System.out.println(inverseResult.result);
             }
 
-            // 打开电爪
-            gripper.openGripper();
-            try {
-                Thread.sleep(1000); // 等待电爪打开
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            // Example of setting control variables
+            Map mapsetD0 = new HashMap<>();
+            mapsetD0.put("addr", 0);
+            mapsetD0.put("value", 1);
 
-            // 关闭电爪以夹取物体
-            gripper.closeGripper();
-            try {
-                Thread.sleep(1000); // 等待电爪关闭
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            Map mapsetD2 = new HashMap<>();
+            mapsetD2.put("addr", 2);
+            mapsetD2.put("value", weight);
 
-            // 移动机械臂到新的位置
-            try {
-                roboticService.movePoint(new PointParam());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            Map mapsetD1 = new HashMap<>();
+            mapsetD1.put("addr", 1);
+            mapsetD1.put("value", 1);
 
-            // 释放物体
-            gripper.openGripper();
-            try {
-                Thread.sleep(1000); // 等待电爪打开
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            GripperUtil.CommandResult commandResultD0 = GripperUtil.sendCMD(socket, "setSysVarD", mapsetD0, 1, true);
+            System.out.println("commandResultD0---" + commandResultD0.result.toString());
 
-            // 断开连接
-            gripper.disconnect();
-            roboticService.disconnectET();
-            System.out.println("Disconnected from the gripper and arm.");
-        } else {
-            System.out.println("Failed to connect to the gripper.");
-        }
-    }
+            GripperUtil.CommandResult commandResultD2 = GripperUtil.sendCMD(socket, "setSysVarD", mapsetD2, 1, true);
+            System.out.println("commandResultD2---" + commandResultD2.result.toString());
 
-    public Integer ELITEconnectGRIPPER() {
-        GripperUtil gripperUtil = new GripperUtil("192.168.1.200");
-        if (gripperUtil.connect()) {
-            try {
-                gripperUtil.openSerialPort(1); // 0-RS232 1-RS485
-                gripperUtil.configureSerialPort(115200, 8, "N", 1);
-                gripperUtil.resetGripper();
-                System.out.println(gripperUtil.recvSerialPort());
-                //gripperUtil.resetGripperAll();
-
-                /*// 读取反馈数据
-                String feedback = gripperUtil.readData();
-                if (feedback != null) {
-                    System.out.println("Received feedback: " + feedback);
-                } else {
-                    System.out.println("No feedback received.");
-                }*/
-
-                gripperUtil.closeSerialPort();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                gripperUtil.disconnect();
-            }
+            GripperUtil.CommandResult commandResultD1 = GripperUtil.sendCMD(socket, "setSysVarD", mapsetD1, 1, true);
+            System.out.println("commandResultD1---" + commandResultD1.result.toString());
             return 1;
         } else {
             System.out.println("连接机器人失败。");

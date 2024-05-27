@@ -1,124 +1,126 @@
 package com.msl.robotic.util;
 
-import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fazecast.jSerialComm.SerialPort;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 public class GripperUtil {
-    private String robotIp;
-    private Socket socket;
-    private OutputStream outputStream;
-    private InputStream inputStream;
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
-    public GripperUtil(String robotIp) {
-        this.robotIp = robotIp;
-    }
+    public static class CommandResult {
+        public boolean success;
+        public Object result;
+        public int id;
 
-    // 连接机器人
-    public boolean connect() {
-        try {
-            socket = new Socket(robotIp, 8055);
-            outputStream = socket.getOutputStream();
-            inputStream = socket.getInputStream();
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        public CommandResult(boolean success, Object result, int id) {
+            this.success = success;
+            this.result = result;
+            this.id = id;
         }
     }
 
-    // 断开连接
-    public void disconnect() {
+    public static CommandResult sendCMD(Socket socket, String cmd, Object params, int id, boolean retFlag) {
+        if (params == null) {
+            params = new HashMap<>();
+        }
+        String paramsStr;
         try {
-            if (socket != null) {
-                socket.close();
+            paramsStr = objectMapper.writeValueAsString(params);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new CommandResult(false, null, id);
+        }
+
+        String sendStr = String.format("{\"method\":\"%s\",\"params\":%s,\"jsonrpc\":\"2.0\",\"id\":%d}\n", cmd, paramsStr, id);
+
+        try {
+            OutputStream out = socket.getOutputStream();
+            out.write(sendStr.getBytes(StandardCharsets.UTF_8));
+            out.flush();
+
+            if (retFlag) {
+                InputStream in = socket.getInputStream();
+                byte[] buffer = new byte[1024];
+                int readBytes = in.read(buffer);
+                if (readBytes != -1) {
+                    String response = new String(buffer, 0, readBytes, StandardCharsets.UTF_8);
+                    Map<String, Object> jdata = objectMapper.readValue(response, Map.class);
+                    if (jdata.containsKey("result")) {
+                        return new CommandResult(true, objectMapper.readValue(jdata.get("result").toString(), Object.class), (int) jdata.get("id"));
+                    } else if (jdata.containsKey("error")) {
+                        return new CommandResult(false, jdata.get("error"), (int) jdata.get("id"));
+                    }
+                }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
+        return new CommandResult(false, null, id);
     }
 
-    // 发送命令
-    private String sendCommand(String command) throws IOException {
-        String jsonCommand = String.format("{\"jsonrpc\":\"2.0\",\"method\":\"%s,\"id\":1}", command);
-        System.out.println("sendCommand: " + jsonCommand);
-        outputStream.write(jsonCommand.getBytes(StandardCharsets.ISO_8859_1));
-        outputStream.flush();
-        // 如果需要，请添加读取响应的逻辑
-        return jsonCommand;
-    }
+    public static void computerDirectGripper() {
+        // 列出所有可用的串行端口
+        SerialPort[] ports = SerialPort.getCommPorts();
+        for (SerialPort port : ports) {
+            System.out.println("Available Port: " + port.getSystemPortName());
+        }
 
-    // 打开串口
-    public void openSerialPort(int deviceType) throws IOException {
-        String command = String.format("open_serial_port\",\"params\":{\"device_type\":%d}", deviceType);
-        sendCommand(command);
-    }
+        // 打开指定的串行端口（替换为实际的端口名称）
+        SerialPort comPort = SerialPort.getCommPort("COM3");
+        comPort.setBaudRate(115200); // 根据需要设置波特率
+        comPort.setNumDataBits(8);
+        comPort.setNumStopBits(SerialPort.ONE_STOP_BIT);
+        comPort.setParity(SerialPort.NO_PARITY);
 
-    // 配置串口
-    public void configureSerialPort(int baudRate, int bits, String event, int stop) throws IOException {
-        String command = String.format("setopt_serial_port\",\"params\":{\"baud_rate\":%d,\"bits\":%d,\"event\":\"%s\",\"stop\":%d}", baudRate, bits, event, stop);
-        sendCommand(command);
-    }
+        // 打开端口并检查是否成功
+        if (!comPort.openPort()) {
+            System.out.println("Failed to open port.");
+            return;
+        }
 
-    // 发送数据
-    public void sendData(byte[] data) throws IOException {
-        String command = String.format("send_serial_data\",\"params\":{\"data\":%s}", bytesToHex(data));
-        sendCommand(command);
-    }
+        System.out.println("Port is open.");
 
-    // 重置爪子
-    public void resetGripper() throws IOException {
-        byte[] command = {0x01, 0x06, 0x01, 0x00, 0x00, 0x01, 0x49, (byte) 0xF6};
-        sendData(command);
-    }
+        // 设置流控制
+        comPort.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
 
-    // 重置爪子
-    public void resetGripperAll() throws IOException {
+        // 要发送的命令
         byte[] command = {0x01, 0x06, 0x01, 0x00, 0x00, (byte)0xA5, 0x48, 0x4D};
-        sendData(command);
-    }
+        try {
+            // 确保端口已准备好发送数据
+            if (comPort.isOpen() && comPort.getOutputStream() != null) {
+                // 发送命令
+                int bytesWritten = comPort.writeBytes(command, command.length);
+                System.out.println("Sent " + bytesWritten + " bytes.");
 
-    // 关闭串口
-    public void closeSerialPort() throws IOException {
-        sendCommand("close_serial_port");
-    }
+                // 等待设备响应
+                Thread.sleep(100); // 等待100毫秒
 
-    // 读取反馈数据
-    public String recvSerialPort() throws IOException {
-        return sendCommand("recv_serial_port");
-    }
+                // 接收反馈
+                byte[] readBuffer = new byte[1024];
+                int numRead = comPort.readBytes(readBuffer, readBuffer.length);
+                System.out.println("Read " + numRead + " bytes.");
 
-    // 将字节数组转换为十六进制字符串
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int i = 0; i < bytes.length; i++) {
-            sb.append(String.format("%02X", bytes[i]));
-            if (i < bytes.length - 1) {
-                sb.append(",");
+                // 打印反馈数据
+                for (int i = 0; i < numRead; i++) {
+                    System.out.printf("%02X ", readBuffer[i]);
+                }
+                System.out.println();
+            } else {
+                System.out.println("Failed to write to port. OutputStream is null or port is closed.");
             }
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
-    public static void main(String[] args) {
-        GripperUtil gripperUtil = new GripperUtil("172.16.11.248");
-        if (gripperUtil.connect()) {
-            try {
-                gripperUtil.openSerialPort(1); // 0-RS232 1-RS485通信
-                gripperUtil.configureSerialPort(115200, 8, "N", 1);
-                gripperUtil.resetGripper();
-                gripperUtil.closeSerialPort();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                gripperUtil.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // 关闭端口
+            if (comPort.isOpen()) {
+                comPort.closePort();
+                System.out.println("Port is closed.");
             }
-        } else {
-            System.out.println("连接机器人失败。");
         }
     }
 }

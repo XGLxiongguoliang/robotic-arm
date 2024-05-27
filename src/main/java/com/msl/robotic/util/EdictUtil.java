@@ -117,7 +117,7 @@ public class EdictUtil {
     }
 
     //直线运动
-    public static void lineMove(Socket socket,List<Object[]> points) throws InterruptedException {
+    public static boolean lineMove(Socket socket,List<Object[]> points) throws InterruptedException {
         JSONObject robotState = getRobotState(socket);
         if (Objects.equals(robotState.get("result"),"0")){
             JSONObject params = new JSONObject();
@@ -128,6 +128,7 @@ public class EdictUtil {
         }
 
         for (Object[] point : points) {
+            System.out.println("lineMove---" + point.toString());
             JSONObject params = new JSONObject();
             params.put("targetPos", point);
             params.put("speed_type", 0);
@@ -135,6 +136,7 @@ public class EdictUtil {
             sendCMD(socket, "moveByLine",params, 2);
         }
 
+        return true;
     }
 
     //轨迹运动
