@@ -56,21 +56,14 @@ public class RoboticService {
     //根据坐标移动
     public int movePoint(PointParam param) throws InterruptedException {
         Object[] weizi = pointToWeizi(socket, param.getPoint());
-        boolean operateFlag = lineMove(socket, Collections.singletonList(weizi));
+        lineMove(socket, Collections.singletonList(weizi));
 //        pointMap.put(param.getId(),PointVo.of(param.getId(),param.getPoint()));
 //        wzMap.put(param.getId(),PointVo.of(param.getId(),weizi));
 
         //先获取机械臂操作的返回状态，机械臂执行结束后，在操作爪子
-        if (operateFlag) {
-            GripperUtil.CommandResult commandResultD0 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1), 1, true);
-            System.out.println("commandResultD0---" + commandResultD0.result.toString());
-
-            GripperUtil.CommandResult commandResultD2 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 500), 1, true);
-            System.out.println("commandResultD2---" + commandResultD2.result.toString());
-
-            GripperUtil.CommandResult commandResultD1 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1), 1, true);
-            System.out.println("commandResultD1---" + commandResultD1.result.toString());
-        }
+        GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1), 1, true);
+        GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 500), 1, true);
+        GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1), 1, true);
 
         return 1;
     }
@@ -149,26 +142,9 @@ public class RoboticService {
             }
 
             // Example of setting control variables
-            Map mapsetD0 = new HashMap<>();
-            mapsetD0.put("addr", 0);
-            mapsetD0.put("value", 1);
-
-            Map mapsetD2 = new HashMap<>();
-            mapsetD2.put("addr", 2);
-            mapsetD2.put("value", weight);
-
-            Map mapsetD1 = new HashMap<>();
-            mapsetD1.put("addr", 1);
-            mapsetD1.put("value", 1);
-
-            GripperUtil.CommandResult commandResultD0 = GripperUtil.sendCMD(socket, "setSysVarD", mapsetD0, 1, true);
-            System.out.println("commandResultD0---" + commandResultD0.result.toString());
-
-            GripperUtil.CommandResult commandResultD2 = GripperUtil.sendCMD(socket, "setSysVarD", mapsetD2, 1, true);
-            System.out.println("commandResultD2---" + commandResultD2.result.toString());
-
-            GripperUtil.CommandResult commandResultD1 = GripperUtil.sendCMD(socket, "setSysVarD", mapsetD1, 1, true);
-            System.out.println("commandResultD1---" + commandResultD1.result.toString());
+            GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1), 1, true);
+            GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 500), 1, true);
+            GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1), 1, true);
             return 1;
         } else {
             System.out.println("连接机器人失败。");
