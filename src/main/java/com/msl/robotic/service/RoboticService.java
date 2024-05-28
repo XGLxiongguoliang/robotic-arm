@@ -1,6 +1,8 @@
 package com.msl.robotic.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.msl.robotic.param.PointParam;
+import com.msl.robotic.util.EdictUtil;
 import com.msl.robotic.util.GripperUtil;
 import com.msl.robotic.util.LuaParamEnum;
 import com.msl.robotic.util.LuaParamUtil;
@@ -10,31 +12,28 @@ import org.springframework.stereotype.Service;
 
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.msl.robotic.util.EdictUtil.*;
 
 @Service
 public class RoboticService {
 
-    private static Map<Integer,PointVo> pointMap = new LinkedHashMap<>();
+    private static Map<Integer, PointVo> pointMap = new LinkedHashMap<>();
     private static Socket socket = null;
 
     private static Integer id = 0;
-
-    @Autowired
-    private RoboticService roboticService;
-
-    @Autowired
-    private GripperService gripperService;
 
     //建立连接
     public int connectET() {
         String robotIp = "192.168.1.200";
         int port = 8055;
         socket = connectETController(robotIp, port);
-        if (socket != null){
+        if (socket != null) {
             return 1;
-        }else {
+        } else {
             return 0;
         }
     }
@@ -47,36 +46,41 @@ public class RoboticService {
     }
 
     //获得当前节点位姿
-    public PointVo getNowPoint(){
+    public PointVo getNowPoint() {
         Object[] zeroBase = getZeroBase(socket);
         Integer nowId = id++;
-        return PointVo.of(nowId,zeroBase);
+        return PointVo.of(nowId, zeroBase);
     }
 
     //根据坐标移动
     public int movePoint(PointParam param) throws InterruptedException {
+
         Object[] weizi = pointToWeizi(socket, param.getPoint());
-        boolean operateFlag = lineMove(socket, Collections.singletonList(weizi));
+        lineMove(socket, Collections.singletonList(weizi));
 //        pointMap.put(param.getId(),PointVo.of(param.getId(),param.getPoint()));
 //        wzMap.put(param.getId(),PointVo.of(param.getId(),weizi));
 
-        //先获取机械臂操作的返回状态，机械臂执行结束后，在操作爪子
-        if (operateFlag) {
-            GripperUtil.CommandResult commandResultD0 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1), 1, true);
-            System.out.println("commandResultD0---" + commandResultD0.result.toString());
-
-            GripperUtil.CommandResult commandResultD2 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 500), 1, true);
-            System.out.println("commandResultD2---" + commandResultD2.result.toString());
-
-            GripperUtil.CommandResult commandResultD1 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1), 1, true);
-            System.out.println("commandResultD1---" + commandResultD1.result.toString());
+        while (true) {
+            JSONObject robotState = getRobotState(socket);
+            if (robotState.get("result").equals("0")) {
+                EdictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1));
+                EdictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 1000));
+                EdictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1));
+                break;
+            }
         }
+
+
+        //先获取机械臂操作的返回状态，机械臂执行结束后，在操作爪子
+//        EdictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1));
+//        EdictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 1000));
+//        EdictUtilictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1));
 
         return 1;
     }
 
     //所有坐标节点
-    public List<PointVo>  listPoints(){
+    public List<PointVo> listPoints() {
         Collection<PointVo> values = pointMap.values();
         ArrayList<PointVo> list = new ArrayList<>();
         list.addAll(values);
@@ -99,7 +103,7 @@ public class RoboticService {
         for (Integer id : list) {
             wzList.add(pointMap.get(id).getPoint());
         }
-        lineListMove(socket,wzList);
+        lineListMove(socket, wzList);
         return 1;
     }
 
@@ -113,7 +117,7 @@ public class RoboticService {
         weizi.setName(param.getName());
         weizi.setPoint(param.getPoint());
 
-        pointMap.put(param.getId(),weizi);
+        pointMap.put(param.getId(), weizi);
         return 1;
     }
 

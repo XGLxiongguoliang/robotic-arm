@@ -74,8 +74,8 @@ public class RoboticController {
     }
 
     @ApiOperation(value = "轨迹运动", notes = "<br>by kzl")
-    @GetMapping("/movePath")
-    public Result<Integer> movePath(@RequestParam(value = "list") List<Integer> list) {
+    @PostMapping("/movePath")
+    public Result<Integer> movePath(@RequestBody List<Integer> list) {
         return Result.ok(roboticService.movePath(list));
     }
 
