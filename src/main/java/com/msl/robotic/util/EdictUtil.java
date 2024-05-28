@@ -55,7 +55,7 @@ public class EdictUtil {
     }
 
     //发送指令
-    private static JSONObject sendCMD(Socket socket, String cmd, JSONObject params, int id) {
+    public static JSONObject sendCMD(Socket socket, String cmd, JSONObject params, int id) {
         JSONObject json = new JSONObject();
         json.put("method", cmd);
         json.put("params", params);
@@ -141,17 +141,17 @@ public class EdictUtil {
     }
 
     //轨迹运动
-    public static void lineListMove(Socket socket, List<Object[]> points) {
+    public static void lineListMove(Socket socket, List<Object[]> points, int i) {
 
-        int i = 0;
-        for (Object[] o : points) {
-            JSONObject params = new JSONObject();
-            params.put("wayPoint", o);
-            params.put("moveType", 0);
-            params.put("speed", 50);
-            params.put("circular_radius", 20);
-            sendCMD(socket, "addPathPoint", params, i++);
-        }
+//        int i = 0;
+//        for (Object[] o : points) {
+//            JSONObject params = new JSONObject();
+//            params.put("wayPoint", o);
+//            params.put("moveType", 0);
+//            params.put("speed", 50);
+//            params.put("circular_radius", 20);
+//            sendCMD(socket, "addPathPoint", params, i++);
+//        }
 
         sendCMD(socket, "moveByPath", new JSONObject(), i++);
 
@@ -302,17 +302,31 @@ public class EdictUtil {
 //        }
     }
 
-    public static void setSysD(Socket socket, JSONObject param) throws InterruptedException {
+    public static void setSysParamD(Socket socket, JSONObject param) throws InterruptedException {
         JSONObject robotState = getRobotState(socket);
         if (Objects.equals(robotState.get("result"), "0")) {
             JSONObject params = new JSONObject();
             params.put("status", 1);
             JSONObject jsonObject = sendCMD(socket, "set_servo_status", params, 1);
             System.out.println("设置状态：===" + JSON.toJSONString(jsonObject));
-            Thread.sleep(1000);
         }
 
         JSONObject jsonObject = sendCMD(socket, "setSysVarD", param, 2);
         System.out.println("设置爪子参数：===" + JSON.toJSONString(jsonObject));
+    }
+
+    public static double getSysParamD(Socket socket, JSONObject param) throws InterruptedException {
+        JSONObject robotState = getRobotState(socket);
+        if (Objects.equals(robotState.get("result"), "0")) {
+            JSONObject params = new JSONObject();
+            params.put("status", 1);
+            JSONObject jsonObject = sendCMD(socket, "set_servo_status", params, 1);
+            System.out.println("设置状态：===" + JSON.toJSONString(jsonObject));
+        }
+
+        JSONObject jsonObject = sendCMD(socket, "getSysVarD", param, 2);
+        System.out.println("获取爪子参数：===" + JSON.toJSONString(jsonObject));
+
+        return jsonObject.getDouble("result");
     }
 }

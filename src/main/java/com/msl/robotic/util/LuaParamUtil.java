@@ -9,7 +9,7 @@ public class LuaParamUtil {
     private static String ADDR = "addr";
     private static String ADDR_VALUE = "value";
 
-    public static JSONObject buildParameter(LuaParamEnum parameter, Integer value) {
+    public static JSONObject buildParameter(LuaParamEnum parameter, Double value) {
         value = limitValue(value, parameter.getMinValue(), parameter.getMaxValue());
 
         JSONObject param = new JSONObject();
@@ -18,7 +18,7 @@ public class LuaParamUtil {
         return param;
     }
 
-    private static int limitValue(int value, int min, int max) {
+    private static double limitValue(double value, int min, int max) {
         if (value < min) return min;
         if (value > max) return max;
         return value;
