@@ -128,12 +128,12 @@ public class EdictUtil {
         }
 
         for (Object[] point : points) {
-            System.out.println("lineMove---" + point.toString());
             JSONObject params = new JSONObject();
             params.put("targetPos", point);
             params.put("speed_type", 0);
             params.put("speed", 200);
-            sendCMD(socket, "moveByLine",params, 2);
+            JSONObject moveByLine = sendCMD(socket, "moveByLine", params, 2);
+            System.out.println("moveByLine---" + moveByLine.toString());
         }
 
         return true;

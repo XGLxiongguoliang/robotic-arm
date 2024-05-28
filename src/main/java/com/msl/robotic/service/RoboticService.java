@@ -65,7 +65,7 @@ public class RoboticService {
             GripperUtil.CommandResult commandResultD0 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1), 1, true);
             System.out.println("commandResultD0---" + commandResultD0.result.toString());
 
-            GripperUtil.CommandResult commandResultD2 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 100), 1, true);
+            GripperUtil.CommandResult commandResultD2 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 500), 1, true);
             System.out.println("commandResultD2---" + commandResultD2.result.toString());
 
             GripperUtil.CommandResult commandResultD1 = GripperUtil.sendCMD(socket, "setSysVarD", LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1), 1, true);
