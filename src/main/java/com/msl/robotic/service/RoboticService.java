@@ -68,23 +68,6 @@ public class RoboticService {
         lineMove(socket, Collections.singletonList(weizi));
 //        pointMap.put(param.getId(),PointVo.of(param.getId(),param.getPoint()));
 //        wzMap.put(param.getId(),PointVo.of(param.getId(),weizi));
-
-        while (true) {
-            JSONObject robotState = getRobotState(socket);
-            if (robotState.get("result").equals("0")) {
-                EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1d));
-                EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 1000d));
-                EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1d));
-                break;
-            }
-        }
-
-
-        //先获取机械臂操作的返回状态，机械臂执行结束后，在操作爪子
-//        EdictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1));
-//        EdictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 1000));
-//        EdictUtilictUtil.setSysD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1));
-
         return 1;
     }
 
