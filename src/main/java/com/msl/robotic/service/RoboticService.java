@@ -28,9 +28,11 @@ public class RoboticService {
     private static Integer id = 0;
 
     static {
-        pointMap.put(1, PointVo.of(1, new Object[]{99.62913223140491,-79.97339876033057,82.34993811881189,-91.84567901234568,88.63657407407408,-85.19945987654319}));
-        pointMap.put(2, PointVo.of(2, new Object[]{115.60924586776856,-83.27195247933884,85.11850247524751,-83.55054012345678,70.19637345679011,-67.8483796296296}));
-        pointMap.put(3, PointVo.of(3, new Object[]{137.22546487603304,-70.86105371900823,68.16120049504948,-72.2114197530864,74.63541666666666,-45.63618827160492}));
+        pointMap.put(0, PointVo.of(0, new Object[]{93.256198347107443,-91.694214876033044,87.815903465346523,-90.094135802469125,90.293209876543216,-45.602623456790127}));
+        pointMap.put(1, PointVo.of(1, new Object[]{80.065857438016508,-49.084194214876057,99.7917698019802,-128.66743827160488,178.38618827160494,-45.608024691358075}));
+        pointMap.put(2, PointVo.of(2, new Object[]{85.193956611570229,-77.21539256198335,108.93935643564346,-128.77044753086446,178.38541666666666,-45.608024691357805}));
+        pointMap.put(3, PointVo.of(3, new Object[]{152.98657024793388,-61.132747933884325,94.973081683168218,-113.09722222222166,182.66975308641975,-45.609182098765913}));
+        pointMap.put(4, PointVo.of(4, new Object[]{95.155216942148726,-93.263171487603344,106.20018564356437,-112.99961419753053,182.68132716049379,-45.60918209876565}));
     }
 
     //建立连接
@@ -114,39 +116,33 @@ public class RoboticService {
             JSONObject params = new JSONObject();
             params.put("wayPoint", pointMap.get(id).getPoint());
             params.put("moveType", 0);
-            params.put("speed", 5);
+            params.put("speed", 10);
             params.put("circular_radius", 20);
 
             while (true) {
                 JSONObject robotStateWai = getRobotState(socket);
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
                 if (robotStateWai.get("result").equals("0")) {
                     EdictUtil.sendCMD(socket, "addPathPoint", params, i++);
                     lineListMove(socket, wzList, i);
 
-                    //模拟初始位，抓物品位，放物品位，当位置1时候张开爪子；位置2的时候闭合爪子，位置三的时候张开爪子
+                    //模拟初始位，抓物品位，闭合爪子;放物品位，张开爪子
                     if (id == 1) {
                         while (true) {
                             JSONObject robotState = getRobotState(socket);
-                            if (robotState.get("result").equals("0")) {
-                                try {
-                                    EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1d));
-                                    EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 1000d));
-                                    EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1d));
-                                } catch (InterruptedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                break;
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
                             }
-                        }
-                    }
-
-                    if (id == 2) {
-                        while (true) {
-                            JSONObject robotState = getRobotState(socket);
                             if (robotState.get("result").equals("0")) {
                                 try {
                                     EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SCRIPT_MODE, 1d));
-                                    EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 265d));
+                                    EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.TARGET_WIDTH, 460d));
                                     EdictUtil.setSysParamD(socket, LuaParamUtil.buildParameter(LuaParamEnum.SEND_MODE, 1d));
                                 } catch (InterruptedException e) {
                                     throw new RuntimeException(e);
