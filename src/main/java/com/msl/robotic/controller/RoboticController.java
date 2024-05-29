@@ -74,8 +74,8 @@ public class RoboticController {
     }
 
     @ApiOperation(value = "轨迹运动", notes = "<br>by kzl")
-    @GetMapping("/movePath")
-    public Result<Integer> movePath(@RequestParam(value = "list") List<Integer> list) {
+    @PostMapping("/movePath")
+    public Result<Integer> movePath(@RequestBody List<Integer> list) {
         return Result.ok(roboticService.movePath(list));
     }
 
@@ -91,9 +91,51 @@ public class RoboticController {
         return Result.ok(roboticService.deletePoint(id));
     }
 
-    @ApiOperation(value = "机械臂连接爪子", notes = "<br>by kzl")
-    @GetMapping("/ELITEconnectGRIPPER")
-    public Result<Integer> ELITEconnectGRIPPER(@RequestParam(value = "weight") @NotBlank(message = "爪子修改的宽度") Integer weight) {
-        return Result.ok(roboticService.ELITEconnectGRIPPER(weight));
+    @ApiOperation(value = "", notes = "<br>by xgl")
+    @GetMapping("/getGripperCurrentWidth")
+    public Result<Double> getGripperCurrentWidth() {
+        return Result.ok(roboticService.getGripperCurrentWidth());
+    }
+
+    @ApiOperation(value = "", notes = "<br>by xgl")
+    @GetMapping("/getGripperCurrentForce")
+    public Result<Double> getGripperCurrentForce() {
+        return Result.ok(roboticService.getGripperCurrentForce());
+    }
+
+    @ApiOperation(value = "", notes = "<br>by xgl")
+    @GetMapping("/getGripperCurrentSpeed")
+    public Result<Double> getGripperCurrentSpeed() {
+        return Result.ok(roboticService.getGripperCurrentSpeed());
+    }
+
+    @ApiOperation(value = "", notes = "<br>by xgl")
+    @GetMapping("/getGripperCurrentWidthForceSpeed")
+    public Result<String> getGripperCurrentWidthForceSpeed() {
+        return Result.ok(roboticService.getGripperCurrentWidthForceSpeed());
+    }
+
+    @ApiOperation(value = "", notes = "<br>by xgl")
+    @GetMapping("/setGripperWidth")
+    public Result<String> setGripperWidth(@RequestParam(value = "weight") @NotBlank(message = "设置爪子的宽度") double weight) {
+        return Result.ok(roboticService.setGripperWidth(weight));
+    }
+
+    @ApiOperation(value = "", notes = "<br>by xgl")
+    @GetMapping("/setGripperForce")
+    public Result<String> setGripperForce(@RequestParam(value = "force") @NotBlank(message = "设置爪子的力度") double force) {
+        return Result.ok(roboticService.setGripperForce(force));
+    }
+
+    @ApiOperation(value = "", notes = "<br>by xgl")
+    @GetMapping("/setGripperSpeed")
+    public Result<String> setGripperSpeed(@RequestParam(value = "speed") @NotBlank(message = "设置爪子的宽度") double speed) {
+        return Result.ok(roboticService.setGripperSpeed(speed));
+    }
+
+    @ApiOperation(value = "轨迹运动", notes = "<br>by kzl")
+    @PostMapping("/setGripperCurrentWidthForceSpeed")
+    public Result<Integer> setGripperCurrentWidthForceSpeed(@RequestBody List<Integer> list) {
+        return Result.ok(roboticService.setGripperCurrentWidthForceSpeed(list));
     }
 }
